@@ -112,6 +112,7 @@ sub get_base_path {
 
   Deprecated
   Arg[1]      : Bio::EnsEMBL::DataFile
+  Arg[2]      : Specify the file type requred. Used when data file represents multiple physical files
   Example     : my $ext = $dfa->DataFile_to_extension($bam_df);
   Description : Returns an expected extension for the given DataFile type
   Returntype  : Scalar of the expected file extension
@@ -120,15 +121,16 @@ sub get_base_path {
 =cut
 
 sub DataFile_to_extension {
-  my ($self, $df) = @_;
+  my ($self, $df, $file_type) = @_;
   deprecate("Use DataFile_to_extensions() instead");
-  my $extensions = $self->DataFile_to_extensions($df);
+  my $extensions = $self->DataFile_to_extensions($df, $file_type);
   return $extensions->[0];
 }
 
 =head2 DataFile_to_extensions
 
   Arg[1]      : Bio::EnsEMBL::DataFile
+  Arg[2]      : Specify the file type requred. Used when data file represents multiple physical files
   Example     : my $exts = $dfa->DataFile_to_extensions($bam_df);
   Description : Returns all expected extensions for the given DataFile type. The
                 first returned is the default extension
@@ -138,15 +140,20 @@ sub DataFile_to_extension {
 =cut
 
 sub DataFile_to_extensions {
-  my ($self, $df) = @_;
+  my ($self, $df, $file_type) = @_;
   my $type = $df->file_type();
+  $file_type ||= $type;
   my $extensions = {
-    BAM     => ['bam', 'bam.bai'],
-    BAMCOV  => ['bam', 'bam.bai', 'bam.bw'], # BAM coverage files
-    BIGBED  => ['bb'],
-    BIGWIG  => ['bw'],
-    VCF     => ['vcf.gz', 'vcf.gz.tbi'],
-  }->{$type}; 
+    BAM     => { BAM => ['bam', 'bam.bai'] },
+    BAMCOV  => {
+      BAMCOV => ['bam', 'bam.bai', 'bam.bw'], # BAM coverage files
+      BAM => ['bam', 'bam.bai'],
+      BIGWIG => ['bam.bw'],
+    },
+    BIGBED  => { BIGBED => ['bb'] },
+    BIGWIG  => { BIGWIG => ['bw'] },
+    VCF     => { VCF => ['vcf.gz', 'vcf.gz.tbi']},
+  }->{$type}->{$file_type}; 
   throw sprintf(q{No extensions found for the type '%s'}, $type ) if ! $extensions;
   return $extensions;
 }
@@ -195,7 +202,7 @@ sub DataFile_to_adaptor {
       return Bio::EnsEMBL::ExternalData::BAM::BAMAdaptor->new($df->path($base))
 	if $requested_type eq 'BAM' or $requested_type eq 'BAMCOV';
       
-      return Bio::EnsEMBL::ExternalData::BigFile::BigWigAdaptor->new($df->get_all_paths($base)->[2])
+      return Bio::EnsEMBL::ExternalData::BigFile::BigWigAdaptor->new($df->path($base, $requested_type))
 	if $requested_type eq 'BIGWIG';
     }
 

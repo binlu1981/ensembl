@@ -87,9 +87,13 @@ my %base_args = (
 }
 
 {
-  my %exts = (BAM => ['bam', 'bam.bai'], BIGWIG => ['bw'], VCF => ['vcf.gz', 'vcf.gz.tbi'], 'BAMCOV' => ['bam', 'bam.bai', 'bam.bw']);
+  my %exts = (BAM => ['bam', 'bam.bai'], BIGWIG => ['bw'], VCF => ['vcf.gz', 'vcf.gz.tbi'], BAMCOV => ['bam', 'bam.bai', 'bam.bw']);
   while( my ($type, $ext) = each %exts ) {
     is_deeply($dfa->DataFile_to_extensions(new_ok('Bio::EnsEMBL::DataFile'=>[%base_args, -FILE_TYPE => $type])), $ext, 'Checking '.$type.' extension');
+  }
+  # Extra test for BAMCOV bigwig
+  {
+    is_deeply($dfa->DataFile_to_extensions(new_ok('Bio::EnsEMBL::DataFile'=>[%base_args, -FILE_TYPE => 'BAMCOV']), 'BIGWIG'), ['bam.bw'], 'Checking BAMCOV BigWig extension');
   }
 }
 

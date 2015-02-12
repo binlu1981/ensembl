@@ -89,6 +89,7 @@ sub get_ExternalAdaptor {
 
   Arg[1]      : Scalar base of the path to use. Can be ignored if the instance
                 already represents a canonical path 
+  Arg[2]      : Specify the file type requred. Used when data file represents multiple physical files
   Example     : my $f = $df->path();
   Description : Used to generate the path to the file resource. Can return a
                 path to the file or a URL but it is up to the using code to
@@ -107,13 +108,35 @@ sub get_ExternalAdaptor {
 
 
 sub path {
-  my ($self, $base) = @_;
-  my $all_paths = $self->get_all_paths($base);
+  my ($self, $base, $file_type) = @_;
+  my $all_paths = $self->get_all_paths($base, $file_type);
   return $all_paths->[0];
 }
 
+=head2 get_all_paths
+
+  Arg[1]      : Scalar base of the path to use. Can be ignored if the instance
+                already represents a canonical path 
+  Arg[2]      : Specify the file type requred. Used when data file represents multiple physical files
+  Example     : my $f = $df->path();
+  Description : Used to generate the paths to the file resource. Can return a
+                path to the file or a URL but it is up to the using code to
+                know how to interprate the different returned forms.
+                
+                If the data file url is canonical then this is just returned. 
+                If not then a path is generated of the form 
+                B</base/path/production_name/coord_system_version/[software_version]/db_group/name.ext> 
+                
+  Returntype  : ArrayRef of the absolute paths/urls to the given resource
+  Exceptions  : Thrown if the linked Coordinate System lacks a version and the
+                current database also lacks a default version
+  Caller      : public
+
+=cut
+
+
 sub get_all_paths {
-  my ($self, $base) = @_;
+  my ($self, $base, $file_type) = @_;
     
   return [$self->url()] if $self->absolute();
   
@@ -146,7 +169,7 @@ sub get_all_paths {
     push(@targets, [@split]);
   }
   else {
-    my $extensions = $self->adaptor()->DataFile_to_extensions($self);
+    my $extensions = $self->adaptor()->DataFile_to_extensions($self, $file_type);
     foreach my $ext (@{$extensions}) {
       my $filename = sprintf(q{%s.%s}, $self->name(), $ext);
       push(@targets, [$filename]);
