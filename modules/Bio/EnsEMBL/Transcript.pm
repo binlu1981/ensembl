@@ -1986,9 +1986,20 @@ sub translate {
                                -alphabet => 'dna',
                                -id       => $display_id );
 
-  my $translation =
-    $peptide->translate( undef, undef, undef, $codon_table_id, undef,
-                         undef, $complete5, $complete3 );
+# BioPerl 1.6.9 onward have removed the default behaviour of guessing incomplete codons.
+# Ensembl relies on the older behaviour, and the argument lists for these versions are incompatible
+# BioPerl 1.2.3 Bio::PrimarySeqI::translate()
+    #  $terminator, $unknown, $frame, $codonTableId, $fullCDS, $throw, $complete5, $complete3
+# BioPerl 1.6.9 Bio::PrimarySeqI::translate()
+    #  $terminator, $unknown, $frame, $codonTableId, $complete, $complete_codons, $throw, $codonTable, $orf, $start_codon, $offset.
+  use Bio::Perl;
+  my $bioperl = $Bio::Perl::VERSION;
+  my $translation;
+  if ($bioperl && $bioperl > 1.006) {
+    $translation = $peptide->translate( -codontable_id => $codon_table_id, -complete_codons => 1);
+  } else {
+    $translation = $peptide->translate( undef, undef, undef, $codon_table_id, undef, undef, $complete5, $complete3 );
+  }
 
   if ( $self->edits_enabled() ) {
     $self->translation()->modify_translation($translation);
